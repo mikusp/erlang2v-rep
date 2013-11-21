@@ -32,13 +32,43 @@
     l##listName = argv[number]; \
     listName = malloc(sizeof(type) * listLength); \
     \
-    for (i##listLength = 0; i##listLength < listLength; ++i##listLength) { \
+    for (i##listLength = 0; i##listLength < listLength; ++i##listLength, l##listName = t##listName) { \
         enif_get_list_cell(env, l##listName, &h##listName, &t##listName); \
         if (!enif_get_##type(env, h##listName, &listName[i##listLength])) { \
             free(listName); \
             return enif_make_badarg(env); \
         } \
     }
+
+#define ALIST(number, atomToIntFun, retValue) \
+    int retValue = 0; \
+    if (enif_is_atom(env, argv[number])) { \
+        char atom##retValue[256]; \
+        enif_get_atom(env, argv[number], atom##retValue, 256, ERL_NIF_LATIN1); \
+        retValue = atomToIntFun(atom##retValue); \
+        if (retValue == -1) \
+            return enif_make_badarg(env); \
+    } \
+    else if (enif_is_list(env, argv[number])) { \
+        ERL_NIF_TERM l##retValue, h##retValue, t##retValue; \
+        unsigned llen##retValue, illen##retValue; \
+        \
+        if (!enif_get_list_length(env, argv[number], &llen##retValue)) \
+            return enif_make_badarg(env); \
+        l##retValue = argv[number]; \
+        for (illen##retValue = 0; illen##retValue < llen##retValue; ++illen##retValue, l##retValue = t##retValue) { \
+            char currentAtom[256]; \
+            enif_get_list_cell(env, l##retValue, &h##retValue, &t##retValue); \
+            if (!enif_get_atom(env, h##retValue, currentAtom, 256, ERL_NIF_LATIN1)) \
+                return enif_make_badarg(env); \
+            int currentValue = atomToIntFun(currentAtom); \
+            if (currentValue == -1) \
+                return enif_make_badarg(env); \
+            retValue |= currentValue; \
+        } \
+    } \
+    else \
+        return enif_make_badarg(env);
 
 #define TUPLE(type, number, name, desiredArity) \
     const ERL_NIF_TERM* nif##name; \
@@ -178,6 +208,153 @@ int modelPropAtomToInt(const char* atom) {
     else if (strcmp(atom, "not_model") == 0) return sim_modelproperty_not_model;
     else
         return -1;
+}
+
+ERL_NIF_TERM modelPropToAtomList(ErlNifEnv* env, int prop) {
+    ERL_NIF_TERM* atomArray = NULL;
+    size_t arrayLen = 0;
+
+    if (prop & sim_modelproperty_not_collidable) {
+        atomArray = realloc(atomArray, ++arrayLen);
+        atomArray[arrayLen - 1] = enif_make_atom(env, "not_collidable");
+    }
+    if (prop & sim_modelproperty_not_measurable) {
+        atomArray = realloc(atomArray, ++arrayLen);
+        atomArray[arrayLen - 1] = enif_make_atom(env, "not_measurable");
+    }
+    if (prop & sim_modelproperty_not_renderable) {
+        atomArray = realloc(atomArray, ++arrayLen);
+        atomArray[arrayLen - 1] = enif_make_atom(env, "not_renderable");
+    }
+    if (prop & sim_modelproperty_not_detectable) {
+        atomArray = realloc(atomArray, ++arrayLen);
+        atomArray[arrayLen - 1] = enif_make_atom(env, "not_detectable");
+    }
+    if (prop & sim_modelproperty_not_cuttable) {
+        atomArray = realloc(atomArray, ++arrayLen);
+        atomArray[arrayLen - 1] = enif_make_atom(env, "not_cuttable");
+    }
+    if (prop & sim_modelproperty_not_dynamic) {
+        atomArray = realloc(atomArray, ++arrayLen);
+        atomArray[arrayLen - 1] = enif_make_atom(env, "not_dynamic");
+    }
+    if (prop & sim_modelproperty_not_respondable) {
+        atomArray = realloc(atomArray, ++arrayLen);
+        atomArray[arrayLen - 1] = enif_make_atom(env, "not_respondable");
+    }
+    if (prop & sim_modelproperty_not_reset) {
+        atomArray = realloc(atomArray, ++arrayLen);
+        atomArray[arrayLen - 1] = enif_make_atom(env, "not_reset");
+    }
+    if (prop & sim_modelproperty_not_visible) {
+        atomArray = realloc(atomArray, ++arrayLen);
+        atomArray[arrayLen - 1] = enif_make_atom(env, "not_visible");
+    }
+    if (prop & sim_modelproperty_not_model) {
+        atomArray = realloc(atomArray, ++arrayLen);
+        atomArray[arrayLen - 1] = enif_make_atom(env, "not_model");
+    }
+
+    ERL_NIF_TERM retList = enif_make_list_from_array(env, atomArray, arrayLen);
+    free(atomArray);
+
+    return retList;
+}
+
+int buttonPropAtomToInt(const char* atom) {
+    if (strcmp(atom, "button") == 0) return sim_buttonproperty_button;
+    else if (strcmp(atom, "label") == 0) return sim_buttonproperty_label;
+    else if (strcmp(atom, "slider") == 0) return sim_buttonproperty_slider;
+    else if (strcmp(atom, "editbox") == 0) return sim_buttonproperty_editbox;
+    else if (strcmp(atom, "staydown") == 0) return sim_buttonproperty_staydown;
+    else if (strcmp(atom, "enabled") == 0) return sim_buttonproperty_enabled;
+    else if (strcmp(atom, "borderless") == 0) return sim_buttonproperty_borderless;
+    else if (strcmp(atom, "horizontallycentered") == 0) return sim_buttonproperty_horizontallycentered;
+    else if (strcmp(atom, "ignoremouse") == 0) return sim_buttonproperty_ignoremouse;
+    else if (strcmp(atom, "isdown") == 0) return sim_buttonproperty_isdown;
+    else if (strcmp(atom, "transparent") == 0) return sim_buttonproperty_transparent;
+    else if (strcmp(atom, "nobackgroundcolor") == 0) return sim_buttonproperty_nobackgroundcolor;
+    else if (strcmp(atom, "rollupaction") == 0) return sim_buttonproperty_rollupaction;
+    else if (strcmp(atom, "closeaction") == 0) return sim_buttonproperty_closeaction;
+    else if (strcmp(atom, "verticallycentered") == 0) return sim_buttonproperty_verticallycentered;
+    else if (strcmp(atom, "downupevent") == 0) return sim_buttonproperty_downupevent;
+    else
+        return -1;
+}
+
+ERL_NIF_TERM buttonPropToAtomList(ErlNifEnv* env, int prop) {
+    ERL_NIF_TERM* atomArray = NULL;
+    size_t arrayLen = 0;
+
+    if (prop & sim_buttonproperty_button) {
+        atomArray = realloc(atomArray, ++arrayLen);
+        atomArray[arrayLen - 1] = enif_make_atom(env, "button");
+    }
+    if (prop & sim_buttonproperty_label) {
+        atomArray = realloc(atomArray, ++arrayLen);
+        atomArray[arrayLen - 1] = enif_make_atom(env, "label");
+    }
+    if (prop & sim_buttonproperty_slider) {
+        atomArray = realloc(atomArray, ++arrayLen);
+        atomArray[arrayLen - 1] = enif_make_atom(env, "slider");
+    }
+    if (prop & sim_buttonproperty_editbox) {
+        atomArray = realloc(atomArray, ++arrayLen);
+        atomArray[arrayLen - 1] = enif_make_atom(env, "editbox");
+    }
+    if (prop & sim_buttonproperty_staydown) {
+        atomArray = realloc(atomArray, ++arrayLen);
+        atomArray[arrayLen - 1] = enif_make_atom(env, "staydown");
+    }
+    if (prop & sim_buttonproperty_enabled) {
+        atomArray = realloc(atomArray, ++arrayLen);
+        atomArray[arrayLen - 1] = enif_make_atom(env, "enabled");
+    }
+    if (prop & sim_buttonproperty_borderless) {
+        atomArray = realloc(atomArray, ++arrayLen);
+        atomArray[arrayLen - 1] = enif_make_atom(env, "borderless");
+    }
+    if (prop & sim_buttonproperty_horizontallycentered) {
+        atomArray = realloc(atomArray, ++arrayLen);
+        atomArray[arrayLen - 1] = enif_make_atom(env, "horizontallycentered");
+    }
+    if (prop & sim_buttonproperty_ignoremouse) {
+        atomArray = realloc(atomArray, ++arrayLen);
+        atomArray[arrayLen - 1] = enif_make_atom(env, "ignoremouse");
+    }
+    if (prop & sim_buttonproperty_isdown) {
+        atomArray = realloc(atomArray, ++arrayLen);
+        atomArray[arrayLen - 1] = enif_make_atom(env, "isdown");
+    }
+    if (prop & sim_buttonproperty_transparent) {
+        atomArray = realloc(atomArray, ++arrayLen);
+        atomArray[arrayLen - 1] = enif_make_atom(env, "transparent");
+    }
+    if (prop & sim_buttonproperty_nobackgroundcolor) {
+        atomArray = realloc(atomArray, ++arrayLen);
+        atomArray[arrayLen - 1] = enif_make_atom(env, "nobackgroundcolor");
+    }
+    if (prop & sim_buttonproperty_rollupaction) {
+        atomArray = realloc(atomArray, ++arrayLen);
+        atomArray[arrayLen - 1] = enif_make_atom(env, "rollupaction");
+    }
+    if (prop & sim_buttonproperty_closeaction) {
+        atomArray = realloc(atomArray, ++arrayLen);
+        atomArray[arrayLen - 1] = enif_make_atom(env, "closeaction");
+    }
+    if (prop & sim_buttonproperty_verticallycentered) {
+        atomArray = realloc(atomArray, ++arrayLen);
+        atomArray[arrayLen - 1] = enif_make_atom(env, "verticallycentered");
+    }
+    if (prop & sim_buttonproperty_downupevent) {
+        atomArray = realloc(atomArray, ++arrayLen);
+        atomArray[arrayLen - 1] = enif_make_atom(env, "downupevent");
+    }
+
+    ERL_NIF_TERM retList = enif_make_list_from_array(env, atomArray, arrayLen);
+    free(atomArray);
+
+    return retList;
 }
 
 ERL_FUNC(start) {
@@ -628,8 +805,9 @@ ERL_FUNC(getModelProperty) {
     int prop;
 
     int ret = simxGetModelProperty(clientID, objectHandle, &prop, operationMode);
-    return enif_make_tuple2(env, enif_make_int(env, ret), enif_make_int(env,
-        prop));
+    ERL_NIF_TERM propsList = modelPropToAtomList(env, prop);
+
+    return enif_make_tuple2(env, enif_make_int(env, ret), propsList);
 }
 
 ERL_FUNC(getObjectChild) {
@@ -861,8 +1039,9 @@ ERL_FUNC(getUIButtonProperty) {
 
     int ret = simxGetUIButtonProperty(clientID, uiHandle, uiButtonID, &prop,
         operationMode);
-    return enif_make_tuple2(env, enif_make_int(env, ret), enif_make_int(env,
-        prop));
+    ERL_NIF_TERM propList = buttonPropToAtomList(env, prop);
+
+    return enif_make_tuple2(env, enif_make_int(env, ret), propList);
 }
 
 ERL_FUNC(getUIEventButton) {
@@ -1253,14 +1432,10 @@ ERL_FUNC(setJointTargetVelocity) {
 ERL_FUNC(setModelProperty) {
     PARAM(int, 0, clientID);
     PARAM(int, 1, objectHandle);
-    APARAM(2, prop);
+    ALIST(2, modelPropAtomToInt, prop);
     OPMODE(3, operationMode);
 
-    int intProp = modelPropAtomToInt(prop);
-    if (intProp == -1)
-        return enif_make_badarg(env);
-
-    int ret = simxSetModelProperty(clientID, objectHandle, intProp, operationMode);
+    int ret = simxSetModelProperty(clientID, objectHandle, prop, operationMode);
     return enif_make_int(env, ret);
 }
 
@@ -1384,7 +1559,7 @@ ERL_FUNC(setUIButtonProperty) {
     PARAM(int, 0, clientID);
     PARAM(int, 1, uiHandle);
     PARAM(int, 2, uiButtonID);
-    PARAM(int, 3, prop);
+    ALIST(3, buttonPropAtomToInt, prop);
     OPMODE(4, operationMode);
 
     int ret = simxSetUIButtonProperty(clientID, uiHandle, uiButtonID, prop,
