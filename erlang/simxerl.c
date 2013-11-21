@@ -1278,11 +1278,32 @@ ERL_FUNC(readVisionSensor) {
 
     int ret = simxReadVisionSensor(clientID, sensorHandle, &detectionState,
         &auxValues, &auxValuesCount, operationMode);
-    // TODO return something useful
 
-    simxReleaseBuffer((char*)auxValues);
-    simxReleaseBuffer((char*)auxValuesCount);
-    return enif_make_int(env, ret);
+    int numberOfPackets = auxValuesCount[0];
+    ERL_NIF_TERM* retArrOfLists = malloc(sizeof(ERL_NIF_TERM) * numberOfPackets);
+    int i = 0;
+    float* auxValuesCopy = auxValues;
+
+    for (; i < numberOfPackets; ++i) {
+        int packetSize = auxValuesCount[i+1];
+        ERL_NIF_TERM* packetArr = malloc(sizeof(ERL_NIF_TERM) * packetSize);
+        int j = 0;
+
+        for (; j < packetSize; ++j) {
+            packetArr[j] = enif_make_double(env, auxValues[0]);
+            auxValues++;
+        }
+
+        retArrOfLists[i] = enif_make_list_from_array(env, packetArr, packetSize);
+        free(packetArr);
+    }
+
+    ERL_NIF_TERM retListOfLists = enif_make_list_from_array(env, retArrOfLists, numberOfPackets);
+    free(retArrOfLists);
+
+    simxReleaseBuffer(auxValuesCopy);
+    simxReleaseBuffer(auxValuesCount);
+    return enif_make_tuple3(env, ret, enif_make_int(env, (int)detectionState), retListOfLists);
 }
 
 // simxReleaseBuffer isn't really useful in Erlang, is it?
