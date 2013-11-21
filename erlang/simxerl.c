@@ -1101,12 +1101,30 @@ ERL_FUNC(getVisionSensorImage) {
     PARAM(int, 2, options);
     OPMODE(3, operationMode);
     int resolution[2];
+    size_t imageSizeInBytes;
+    ERL_NIF_TERM optionsAtom;
     char* image;
 
     int ret = simxGetVisionSensorImage(clientID, sensorHandle, resolution,
         &image, (char)options, operationMode);
-    // TODO convert image to something
-    return enif_make_int(env, ret);
+
+    if (options & 0x1) {
+        optionsAtom = enif_make_atom(env, "grayscale");
+        imageSizeInBytes = resolution[0] * resolution[1];
+    }
+    else {
+        optionsAtom = enif_make_atom(env, "rgb");
+        imageSizeInBytes = resolution[0] * resolution[1] * 3;
+    }
+
+    ERL_NIF_TERM imageErlangBinary;
+    unsigned char* erlangBinaryMem = enif_make_new_binary(env, imageSizeInBytes, &imageErlangBinary);
+
+    memcpy(erlangBinaryMem, image, imageSizeInBytes);
+
+    return enif_make_tuple3(env, enif_make_int(env, ret), enif_make_tuple3(env,
+        optionsAtom, enif_make_int(env, resolution[0]), enif_make_int(env,
+        resolution[1])), imageErlangBinary);
 }
 
 ERL_FUNC(jointGetForce) {
@@ -1603,14 +1621,22 @@ ERL_FUNC(setUISlider) {
 ERL_FUNC(setVisionSensorImage) {
     PARAM(int, 0, clientID);
     PARAM(int, 1, sensorHandle);
-    char* image = NULL;
-    // stub image for now, should receive binary data?
-    PARAM(int, 3, bufferSize);
-    PARAM(int, 4, options);
-    OPMODE(5, operationMode);
+    ErlNifBinary imageBin;
+    if (!enif_inspect_binary(env, argv[2], &imageBin))
+        return enif_make_badarg(env);
+    APARAM(3, options);
+    OPMODE(4, operationMode);
+    char colorMode;
 
-    int ret = simxSetVisionSensorImage(clientID, sensorHandle, image,
-        bufferSize, (char)options, operationMode);
+    if (strcmp(options, "grayscale"))
+        colorMode = 1;
+    else if (strcmp(options, "rgb"))
+        colorMode = 0;
+    else
+        return enif_make_badarg(env);
+
+    int ret = simxSetVisionSensorImage(clientID, sensorHandle, (char*)imageBin.data,
+        imageBin.size, colorMode, operationMode);
     return enif_make_int(env, ret);
 }
 
@@ -1751,7 +1777,7 @@ static ErlNifFunc functions[] = {
     {"setUIButtonLabel", 6, setUIButtonLabel},
     {"setUIButtonProperty", 5, setUIButtonProperty},
     {"setUISlider", 5, setUISlider},
-    {"setVisionSensorImage", 6, setVisionSensorImage},
+    {"setVisionSensorImage", 5, setVisionSensorImage},
     {"startSimulation", 2, startSimulation},
     {"stopSimulation", 2, stopSimulation},
     {"synchronous", 2, synchronous},

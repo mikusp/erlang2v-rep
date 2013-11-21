@@ -94,7 +94,7 @@
     setUIButtonLabel/6,
     setUIButtonProperty/5,
     setUISlider/5,
-    setVisionSensorImage/6,
+    setVisionSensorImage/5,
     startSimulation/2,
     stopSimulation/2,
     synchronous/2,
@@ -198,7 +198,7 @@ setStringSignal(_,_,_,_,_) -> stub.
 setUIButtonLabel(_,_,_,_,_,_) -> stub.
 setUIButtonProperty(_,_,_,_,_) -> stub.
 setUISlider(_,_,_,_,_) -> stub.
-setVisionSensorImage(_,_,_,_,_,_) -> stub.
+setVisionSensorImage(_,_,_,_,_) -> stub.
 startSimulation(_,_) -> stub.
 stopSimulation(_,_) -> stub.
 synchronous(_,_) -> stub.
