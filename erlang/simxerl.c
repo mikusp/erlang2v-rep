@@ -537,11 +537,15 @@ ERL_FUNC(copyPasteObjects) {
 ERL_FUNC(createDummy) {
     PARAM(int, 0, clientID);
     PARAM(double, 1, size);
-    // add custom colors support
-    OPMODE(2, operationMode);
-    int dummyHandle;
+    TUPLE(int, 2, colors, 12);
+    OPMODE(3, operationMode);
+    int dummyHandle, i;
+    char c[12];
 
-    int ret = simxCreateDummy(clientID, (float)size, NULL, &dummyHandle, operationMode);
+    for (i = 0; i < 12; ++i)
+        c[i] = (char)colors[i];
+
+    int ret = simxCreateDummy(clientID, (float)size, c, &dummyHandle, operationMode);
     return enif_make_tuple2(env, enif_make_int(env, ret), enif_make_int(env, dummyHandle));
 }
 
@@ -551,13 +555,13 @@ ERL_FUNC(displayDialog) {
     SPARAM(2, mainText);
     PARAM(int, 3, dialogType);
     SPARAM(4, initialText);
-    TUPLE(double, 5, titleColors, 12);
-    TUPLE(double, 6, dialogColors, 12);
+    TUPLE(double, 5, titleColors, 6);
+    TUPLE(double, 6, dialogColors, 6);
     OPMODE(7, operationMode);
     int dialogHandle, uiHandle;
 
-    D2F(titleColors, fTitleColors, 12);
-    D2F(dialogColors, fDialogColors, 12);
+    D2F(titleColors, fTitleColors, 6);
+    D2F(dialogColors, fDialogColors, 6);
 
     int ret = simxDisplayDialog(clientID, titleText, mainText, dialogType,
         initialText, fTitleColors, fDialogColors, &dialogHandle, &uiHandle,
@@ -1082,6 +1086,12 @@ ERL_FUNC(getUISlider) {
         position));
 }
 
+/*
+ * returns a binary term containing C floats
+ * is it possible to use it in Erlang without
+ * any float to double conversion?
+ * TODO
+ */
 ERL_FUNC(getVisionSensorDepthBuffer) {
     PARAM(int, 0, clientID);
     PARAM(int, 1, sensorHandle);
@@ -1091,8 +1101,17 @@ ERL_FUNC(getVisionSensorDepthBuffer) {
 
     int ret = simxGetVisionSensorDepthBuffer(clientID, sensorHandle,
         resolution, &buffer, operationMode);
-    // TODO convert buffer to something more usable
-    return enif_make_int(env, ret);
+
+    int bufferSizeInBytes = resolution[0] * resolution[1] * sizeof(float);
+
+    ERL_NIF_TERM bufferBinary;
+    float* bufferBinaryMem = enif_make_new_binary(env, bufferSizeInBytes, &bufferBinary);
+
+    memcpy(bufferBinaryMem, buffer, bufferSizeInBytes);
+
+    return enif_make_tuple3(env, enif_make_int(env, ret), enif_make_tuple2(env,
+        enif_make_int(env, resolution[0]), enif_make_int(env, resolution[1])),
+        bufferBinary);
 }
 
 ERL_FUNC(getVisionSensorImage) {
@@ -1698,7 +1717,7 @@ static ErlNifFunc functions[] = {
     {"clearStringSignal", 3, clearStringSignal},
     {"closeScene", 2, closeScene},
     {"copyPasteObjects", 3, copyPasteObjects},
-    {"createDummy", 3, createDummy},
+    {"createDummy", 4, createDummy},
     {"displayDialog", 8, displayDialog},
     {"endDialog", 3, endDialog},
     {"eraseFile", 3, eraseFile},

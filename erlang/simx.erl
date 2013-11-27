@@ -15,7 +15,7 @@
     clearStringSignal/3,
     closeScene/2,
     copyPasteObjects/3,
-    createDummy/3,
+    createDummy/4,
     displayDialog/8,
     endDialog/3,
     eraseFile/3,
@@ -105,102 +105,114 @@
 
 init() -> erlang:load_nif("./simxerl", 0).
 
-start(_, _, _, _, _, _) -> stub.
-finish(_) -> stub.
-addStatusbarMessage(_, _, _) -> stub.
-appendStringSignal(_, _, _, _, _) -> stub.
-auxiliaryConsoleClose(_, _, _) -> stub.
-auxiliaryConsoleOpen(_, _, _, _, _, _, _, _, _) -> stub.
-auxiliaryConsolePrint(_, _, _, _) -> stub.
-auxiliaryConsoleShow(_, _, _, _) -> stub.
-breakForceSensor(_, _, _) -> stub.
-clearFloatSignal(_, _, _) -> stub.
-clearIntegerSignal(_, _, _) -> stub.
-clearStringSignal(_, _, _) -> stub.
-closeScene(_, _) -> stub.
-copyPasteObjects(_, _, _) -> stub.
-createDummy(_, _, _) -> stub.
-displayDialog(_, _, _, _, _, _, _, _) -> stub.
-endDialog(_, _, _) -> stub.
-eraseFile(_, _, _) -> stub.
-getAndClearStringSignal(_, _, _) -> stub.
-getArrayParameter(_, _, _) -> stub.
-getBooleanParameter(_, _, _) -> stub.
-getCollisionHandle(_, _, _) -> stub.
-getConnectionId(_) -> stub.
-getDialogInput(_, _, _) -> stub.
-getDialogResult(_, _, _) -> stub.
-getDistanceHandle(_, _, _) -> stub.
-getFloatingParameter(_, _, _) -> stub.
-getFloatSignal(_, _, _) -> stub.
-getInMessageInfo(_, _) -> stub.
-getIntegerParameter(_, _, _) -> stub.
-getIntegerSignal(_, _, _) -> stub.
-getJointMatrix(_, _, _) -> stub.
-getJointPosition(_, _, _) -> stub.
-getLastCmdTime(_) -> stub.
-getLastErrors(_, _) -> stub.
-getModelProperty(_,_,_) -> stub.
-getObjectChild(_,_,_,_) -> stub.
-getObjectFloatParameter(_,_,_,_) -> stub.
-getObjectGroupData(_,_,_,_) -> stub.
-getObjectHandle(_,_,_) -> stub.
-getObjectIntParameter(_,_,_,_) -> stub.
-getObjectOrientation(_,_,_,_) -> stub.
-getObjectParent(_,_,_) -> stub.
-getObjectPosition(_,_,_,_) -> stub.
-getObjects(_,_,_) -> stub.
-getObjectSelection(_,_) -> stub.
-getObjectVelocity(_,_,_) -> stub.
-getOutMessageInfo(_,_) -> stub.
-getPingTime(_) -> stub.
-getStringParameter(_,_,_) -> stub.
-getStringSignal(_,_,_) -> stub.
-getUIButtonProperty(_,_,_,_) -> stub.
-getUIEventButton(_,_,_,_) -> stub.
-getUIHandle(_,_,_) -> stub.
-getUISlider(_,_,_,_) -> stub.
-getVisionSensorDepthBuffer(_,_,_) -> stub.
-getVisionSensorImage(_,_,_,_) -> stub.
-jointGetForce(_,_,_) -> stub.
-loadModel(_,_,_,_) -> stub.
-loadScene(_,_,_,_) -> stub.
-loadUI(_,_,_,_) -> stub.
-pauseCommunication(_,_) -> stub.
-pauseSimulation(_,_) -> stub.
-query(_,_,_,_,_,_) -> stub.
-readCollision(_,_,_) -> stub.
-readDistance(_,_,_) -> stub.
-readForceSensor(_,_,_) -> stub.
-readProximitySensor(_,_,_) -> stub.
-readVisionSensor(_,_,_) -> stub.
-removeObject(_,_,_) -> stub.
-removeUI(_,_,_) -> stub.
-setArrayParameter(_,_,_,_) -> stub.
-setBooleanParameter(_,_,_,_) -> stub.
-setFloatingParameter(_,_,_,_) -> stub.
-setFloatSignal(_,_,_,_) -> stub.
-setIntegerParameter(_,_,_,_) -> stub.
-setIntegerSignal(_,_,_,_) -> stub.
-setJointForce(_,_,_,_) -> stub.
-setJointPosition(_,_,_,_) -> stub.
-setJointTargetPosition(_,_,_,_) -> stub.
-setJointTargetVelocity(_,_,_,_) -> stub.
-setModelProperty(_,_,_,_) -> stub.
-setObjectFloatParameter(_,_,_,_,_) -> stub.
-setObjectIntParameter(_,_,_,_,_) -> stub.
-setObjectOrientation(_,_,_,_,_) -> stub.
-setObjectParent(_,_,_,_,_) -> stub.
-setObjectPosition(_,_,_,_,_) -> stub.
-setObjectSelection(_,_,_) -> stub.
-setSphericalJointMatrix(_,_,_,_) -> stub.
-setStringSignal(_,_,_,_,_) -> stub.
-setUIButtonLabel(_,_,_,_,_,_) -> stub.
-setUIButtonProperty(_,_,_,_,_) -> stub.
-setUISlider(_,_,_,_,_) -> stub.
-setVisionSensorImage(_,_,_,_,_) -> stub.
-startSimulation(_,_) -> stub.
-stopSimulation(_,_) -> stub.
-synchronous(_,_) -> stub.
-synchronousTrigger(_) -> stub.
-transferFile(_,_,_,_,_) -> stub.
+start(_ClientID, _ClientPort, _WaitUntilConnected, _DoNotReconnectOnceDisconnected,
+    _TimeoutInMs, _CommThreadCycleInMs) -> stub.
+finish(_ClientID) -> stub.
+addStatusbarMessage(_ClientID, _Message, _OperationMode) -> stub.
+appendStringSignal(_ClientID, _SignalName, _SignalValue, _SignalLength,
+    _OperationMode) -> stub.
+auxiliaryConsoleClose(_ClientID, _ConsoleHandle, _OperationMode) -> stub.
+auxiliaryConsoleOpen(_ClientID, _Title, _MaxLines, _Mode, _PositionT, _SizeT,
+    _TextColor3T, _BackgroundColor3T, _OperationMode) -> stub.
+auxiliaryConsolePrint(_ClientID, _ConsoleHandle, _Text, _OperationMode) -> stub.
+auxiliaryConsoleShow(_ClientID, _ConsoleHandle, _ShowState, _OperationMode) -> stub.
+breakForceSensor(_ClientID, _ForceSensorHandle, _OperationMode) -> stub.
+clearFloatSignal(_ClientID, _SignalName, _OperationMode) -> stub.
+clearIntegerSignal(_ClientID, _SignalName, _OperationMode) -> stub.
+clearStringSignal(_ClientID, _SignalName, _OperationMode) -> stub.
+closeScene(_ClientID, _OperationMode) -> stub.
+copyPasteObjects(_ClientID, _ObjectHandlesL, _OperationMode) -> stub.
+createDummy(_ClientID, _Size, _Colors12T, _OperationMode) -> stub.
+displayDialog(_ClientID, _TitleText, _MainText, _DialogType, _InitialText,
+    _TitleColors6T, _DialogColors6T, _OperationMode) -> stub.
+endDialog(_ClientID, _DialogHandle, _OperationMode) -> stub.
+eraseFile(_ClientID, _FileNameServerSide, _OperationMode) -> stub.
+getAndClearStringSignal(_ClientID, _SignalName, _OperationMode) -> stub.
+getArrayParameter(_ClientID, _ParamIdentifier, _OperationMode) -> stub.
+getBooleanParameter(_ClientID, _ParamIdentifier, _OperationMode) -> stub.
+getCollisionHandle(_ClientID, _CollisionObjectName, _OperationMode) -> stub.
+getConnectionId(_OperationMode) -> stub.
+getDialogInput(_ClientID, _DialogHandle, _OperationMode) -> stub.
+getDialogResult(_ClientID, _DialogHandle, _OperationMode) -> stub.
+getDistanceHandle(_ClientID, _DistanceObjectName, _OperationMode) -> stub.
+getFloatingParameter(_ClientID, _ParamIdentifier, _OperationMode) -> stub.
+getFloatSignal(_ClientID, _SignalName, _OperationMode) -> stub.
+getInMessageInfo(_ClientID, _OperationMode) -> stub.
+getIntegerParameter(_ClientID, _ParamIdentifier, _OperationMode) -> stub.
+getIntegerSignal(_ClientID, _SignalName, _OperationMode) -> stub.
+getJointMatrix(_ClientID, _JointHandle, _OperationMode) -> stub.
+getJointPosition(_ClientID, _JointHandle, _OperationMode) -> stub.
+getLastCmdTime(_ClientID) -> stub.
+getLastErrors(_ClientID, _OperationMode) -> stub.
+getModelProperty(_ClientID,_ObjectHandle,_OperationMode) -> stub.
+getObjectChild(_ClientID,_ParentObjectHandle,_ChildIndex,_OperationMode) -> stub.
+getObjectFloatParameter(_ClientID,_ObjectHandle,_ParameterID,_OperationMode) -> stub.
+getObjectGroupData(_ClientID,_ObjectType,_DataType,_OperationMode) -> stub.
+getObjectHandle(_ClientID,_ObjectName,_OperationMode) -> stub.
+getObjectIntParameter(_ClientID,_ObjectHandle,_ParameterID,_OperationMode) -> stub.
+getObjectOrientation(_ClientID,_ObjectHandle,_RelativeToObjectHandle,
+    _OperationMode) -> stub.
+getObjectParent(_ClientID,_ObjectHandle,_OperationMode) -> stub.
+getObjectPosition(_ClientID,_ObjectHandle,_RelativeToObjectHandle,_OperationMode) -> stub.
+getObjects(_ClientID,_ObjectType,_OperationMode) -> stub.
+getObjectSelection(_ClientID,_OperationMode) -> stub.
+getObjectVelocity(_ClientID,_ObjectHandle,_OperationMode) -> stub.
+getOutMessageInfo(_ClientID,_InfoType) -> stub.
+getPingTime(_OperationMode) -> stub.
+getStringParameter(_ClientID,_ParamIdentifier,_OperationMode) -> stub.
+getStringSignal(_ClientID,_SignalName,_OperationMode) -> stub.
+getUIButtonProperty(_ClientID,_UIHandle,_UIButtonID,_OperationMode) -> stub.
+getUIEventButton(_ClientID,_UIHandle,_UIEventButtonID,_OperationMode) -> stub.
+getUIHandle(_ClientID,_UIName,_OperationMode) -> stub.
+getUISlider(_ClientID,_UIHandle,_UIButtonID,_OperationMode) -> stub.
+getVisionSensorDepthBuffer(_ClientID,_SensorHandle,_OperationMode) -> stub.
+getVisionSensorImage(_ClientID,_SensorHandle,_Options,_OperationMode) -> stub.
+jointGetForce(_ClientID,_JointHandle,_OperationMode) -> stub.
+loadModel(_ClientID,_ModelPathAndName,_Options,_OperationMode) -> stub.
+loadScene(_ClientID,_ScenePathAndName,_Options,_OperationMode) -> stub.
+loadUI(_ClientID,_UIPathAndName,_Options,_OperationMode) -> stub.
+pauseCommunication(_ClientID,_Pause) -> stub.
+pauseSimulation(_ClientID,_OperationMode) -> stub.
+query(_ClientID,_SignalName,_SignalValue,_SignalLength,_RetSignalName,_TimeoutInMs) -> stub.
+readCollision(_ClientID,_CollisionObjectHandle,_OperationMode) -> stub.
+readDistance(_ClientID,_DistanceObjectHandle,_OperationMode) -> stub.
+readForceSensor(_ClientID,_ForceSensorHandle,_OperationMode) -> stub.
+readProximitySensor(_ClientID,_SensorHandle,_OperationMode) -> stub.
+readVisionSensor(_ClientID,_SensorHandle,_OperationMode) -> stub.
+removeObject(_ClientID,_ObjectHandle,_OperationMode) -> stub.
+removeUI(_ClientID,_UIHandle,_OperationMode) -> stub.
+setArrayParameter(_ClientID,_ParamIdentifier,_ParamValues3T,_OperationMode) -> stub.
+setBooleanParameter(_ClientID,_ParamIdentifier,_ParamValue,_OperationMode) -> stub.
+setFloatingParameter(_ClientID,_ParamIdentifier,_ParamValue,_OperationMode) -> stub.
+setFloatSignal(_ClientID,_SignalName,_SignalValue,_OperationMode) -> stub.
+setIntegerParameter(_ClientID,_ParamIdentifier,_ParamValue,_OperationMode) -> stub.
+setIntegerSignal(_ClientID,_SignalName,_SignalValue,_OperationMode) -> stub.
+setJointForce(_ClientID,_JointHandle,_Force,_OperationMode) -> stub.
+setJointPosition(_ClientID,_JointHandle,_Position,_OperationMode) -> stub.
+setJointTargetPosition(_ClientID,_JointHandle,_TargetPosition,_OperationMode) -> stub.
+setJointTargetVelocity(_ClientID,_JointHandle,_TargetVelocity,_OperationMode) -> stub.
+setModelProperty(_ClientID,_ObjectHandle,_ModelPropertiesL,_OperationMode) -> stub.
+setObjectFloatParameter(_ClientID,_ObjectHandle,_ParameterID,_ParameterValue,
+    _OperationMode) -> stub.
+setObjectIntParameter(_ClientID,_ObjectHandle,_ParameterID,_ParameterValue,
+    _OperationMode) -> stub.
+setObjectOrientation(_ClientID,_ObjectHandle,_RelativeToObjectHandle,
+    _EulerAngles3T,_OperationMode) -> stub.
+setObjectParent(_ClientID,_ObjectHandle,_ParentObject,_KeepInPlace,_OperationMode) -> stub.
+setObjectPosition(_ClientID,_ObjectHandle,_RelativeToObjectHandle,_Position3T,
+    _OperationMode) -> stub.
+setObjectSelection(_ClientID,_ObjectHandlesL,_OperationMode) -> stub.
+setSphericalJointMatrix(_ClientID,_JointHandle,_Matrix12T,_OperationMode) -> stub.
+setStringSignal(_ClientID,_SignalName,_SignalValue,_SignalLength,_OperationMode) -> stub.
+setUIButtonLabel(_ClientID,_UIHandle,_UIButtonID,_UpStateLabel,_DownStateLabel,
+    _OperationMode) -> stub.
+setUIButtonProperty(_ClientID,_UIHandle,_UIButtonID,_ButtonPropertiesL,
+    _OperationMode) -> stub.
+setUISlider(_ClientID,_UIHandle,_UIButtonID,_Position,_OperationMode) -> stub.
+setVisionSensorImage(_ClientID,_SensorHandle,_ImageBin,_Options,_OperationMode) -> stub.
+startSimulation(_ClientID,_OperationMode) -> stub.
+stopSimulation(_ClientID,_OperationMode) -> stub.
+synchronous(_ClientID,_Enable) -> stub.
+synchronousTrigger(_ClientID) -> stub.
+transferFile(_ClientID,_FilePathAndName,_FileNameServerSide,_Timeout,
+    _OperationMode) -> stub.
