@@ -210,6 +210,24 @@ int modelPropAtomToInt(const char* atom) {
         return -1;
 }
 
+int sceneObjectTypeAtomToInt(const char* atom) {
+    if (strcmp(atom, "shape") == 0) return sim_object_shape_type;
+    else if (strcmp(atom, "joint") == 0) return sim_object_joint_type;
+    else if (strcmp(atom, "graph") == 0) return sim_object_graph_type;
+    else if (strcmp(atom, "camera") == 0) return sim_object_camera_type;
+    else if (strcmp(atom, "dummy") == 0) return sim_object_dummy_type;
+    else if (strcmp(atom, "proximitysensor") == 0) return sim_object_proximitysensor_type;
+    else if (strcmp(atom, "path") == 0) return sim_object_path_type;
+    else if (strcmp(atom, "visionsensor") == 0) return sim_object_visionsensor_type;
+    else if (strcmp(atom, "mill") == 0) return sim_object_mill_type;
+    else if (strcmp(atom, "forcesensor") == 0) return sim_object_forcesensor_type;
+    else if (strcmp(atom, "light") == 0) return sim_object_light_type;
+    else if (strcmp(atom, "mirror") == 0) return sim_object_mirror_type;
+    else if (strcmp(atom, "all") == 0) return sim_appobj_object_type;
+    else
+        return -1;
+}
+
 ERL_NIF_TERM modelPropToAtomList(ErlNifEnv* env, int prop) {
     ERL_NIF_TERM* atomArray = NULL;
     size_t arrayLen = 0;
@@ -854,21 +872,260 @@ ERL_FUNC(getObjectFloatParameter) {
 
 ERL_FUNC(getObjectGroupData) {
     PARAM(int, 0, clientID);
-    PARAM(int, 1, objectType);
+    APARAM(1, aObjectType);
     PARAM(int, 2, dataType);
     OPMODE(3, operationMode);
     int handlesCount, intDataCount, floatDataCount, stringDataCount;
+    int i;
     int *handles, *intData;
     float *floatData;
     char *stringData;
+
+    int objectType = sceneObjectTypeAtomToInt(aObjectType);
+    if (objectType == -1)
+        return enif_make_badarg(env);
 
     int ret = simxGetObjectGroupData(clientID, objectType, dataType, &handlesCount,
         &handles, &intDataCount, &intData, &floatDataCount, &floatData,
         &stringDataCount, &stringData, operationMode);
 
-    // TODO now it should convert the data returned (depending on handlesCount and
-    // dataType) to list or list of tuples in Erlang
-    return enif_make_int(env, ret);
+    ERL_NIF_TERM* handlesArray = malloc(sizeof(ERL_NIF_TERM) * handlesCount);
+
+    for (i = 0; i < handlesCount; ++i)
+        handlesArray[i] = enif_make_int(env, handles[i]);
+
+    ERL_NIF_TERM handlesList = enif_make_list_from_array(env, handlesArray,
+        handlesCount);
+    free(handlesArray);
+
+    switch (dataType) {
+    case 0: {
+        ERL_NIF_TERM* retArray = malloc(sizeof(ERL_NIF_TERM) * stringDataCount);
+
+        for (i = 0; i < stringDataCount; ++i) {
+            retArray[i] = enif_make_string(env, stringData, ERL_NIF_LATIN1);
+            int nextStringPosition = strlen(stringData) + 1;
+            stringData += nextStringPosition;
+        }
+
+        ERL_NIF_TERM retList = enif_make_list_from_array(env, retArray,
+            stringDataCount);
+        free(retArray);
+
+        return enif_make_tuple3(env, enif_make_int(env, ret), handlesList,
+            retList);
+    }
+    case 1: {
+        ERL_NIF_TERM* retArray = malloc(sizeof(ERL_NIF_TERM) * intDataCount);
+        int i;
+
+        for (i = 0; i < intDataCount; ++i)
+            retArray[i] = enif_make_int(env, intData[i]);
+
+        ERL_NIF_TERM retList = enif_make_list_from_array(env, retArray,
+            intDataCount);
+        free(retArray);
+
+        // TODO convert returned types to atoms
+        return enif_make_tuple3(env, enif_make_int(env, ret), handlesList,
+            retList);
+    }
+    case 2: {
+        ERL_NIF_TERM* retArray = malloc(sizeof(ERL_NIF_TERM) * intDataCount);
+        int i;
+
+        for (i = 0; i < intDataCount; ++i)
+            retArray[i] = enif_make_int(env, intData[i]);
+
+        ERL_NIF_TERM retList = enif_make_list_from_array(env, retArray,
+            intDataCount);
+        free(retArray);
+
+        return enif_make_tuple3(env, enif_make_int(env, ret), handlesList,
+            retList);
+    }
+    case 3:
+    case 4:
+    case 5:
+    case 6:
+    case 17:
+    case 18: {
+        ERL_NIF_TERM* retArray = malloc(sizeof(ERL_NIF_TERM) * handlesCount);
+
+        for (i = 0; i < handlesCount; ++i)
+            retArray[i] = enif_make_tuple3(env,
+                enif_make_double(env, (double)floatData[i * 3]),
+                enif_make_double(env, (double)floatData[i * 3 + 1]),
+                enif_make_double(env, (double)floatData[i * 3 + 2]));
+
+        ERL_NIF_TERM retList = enif_make_list_from_array(env, retArray,
+            handlesCount);
+        free(retArray);
+
+        return enif_make_tuple3(env, enif_make_int(env, ret), handlesList,
+            retList);
+    }
+    case 7:
+    case 8: {
+        ERL_NIF_TERM* retArray = malloc(sizeof(ERL_NIF_TERM) * handlesCount);
+
+        for (i = 0; i < handlesCount; ++i)
+            retArray[i] = enif_make_tuple4(env,
+                enif_make_double(env, (double)floatData[i * 4]),
+                enif_make_double(env, (double)floatData[i * 4 + 1]),
+                enif_make_double(env, (double)floatData[i * 4 + 2]),
+                enif_make_double(env, (double)floatData[i * 4 + 3]));
+
+        ERL_NIF_TERM retList = enif_make_list_from_array(env, retArray,
+            handlesCount);
+        free(retArray);
+
+        return enif_make_tuple3(env, enif_make_int(env, ret), handlesList,
+            retList);
+    }
+    case 9:
+    case 10:
+    case 19: {
+        ERL_NIF_TERM* retArray = malloc(sizeof(ERL_NIF_TERM) * handlesCount);
+
+        for (i = 0; i < handlesCount; ++i)
+            retArray[i] = enif_make_tuple2(env,
+                enif_make_tuple3(env,
+                    enif_make_double(env, (double)floatData[i * 6]),
+                    enif_make_double(env, (double)floatData[i * 6 + 1]),
+                    enif_make_double(env, (double)floatData[i * 6 + 2])),
+                enif_make_tuple3(env,
+                    enif_make_double(env, (double)floatData[i * 6 + 3]),
+                    enif_make_double(env, (double)floatData[i * 6 + 4]),
+                    enif_make_double(env, (double)floatData[i * 6 + 5])));
+
+        ERL_NIF_TERM retList = enif_make_list_from_array(env, retArray,
+            handlesCount);
+        free(retArray);
+
+        return enif_make_tuple3(env, enif_make_int(env, ret), handlesList,
+            retList);
+    }
+    case 11:
+    case 12: {
+        ERL_NIF_TERM* retArray = malloc(sizeof(ERL_NIF_TERM) * handlesCount);
+
+        for (i = 0; i < handlesCount; ++i)
+            retArray[i] = enif_make_tuple2(env,
+                enif_make_tuple3(env,
+                    enif_make_double(env, (double)floatData[i * 7]),
+                    enif_make_double(env, (double)floatData[i * 7 + 1]),
+                    enif_make_double(env, (double)floatData[i * 7 + 2])),
+                enif_make_tuple4(env,
+                    enif_make_double(env, (double)floatData[i * 7 + 3]),
+                    enif_make_double(env, (double)floatData[i * 7 + 4]),
+                    enif_make_double(env, (double)floatData[i * 7 + 5]),
+                    enif_make_double(env, (double)floatData[i * 7 + 6])));
+
+        ERL_NIF_TERM retList = enif_make_list_from_array(env, retArray,
+            handlesCount);
+        free(retArray);
+
+        return enif_make_tuple3(env, enif_make_int(env, ret), handlesList,
+            retList);
+    }
+    case 13: {
+        ERL_NIF_TERM* intArray = malloc(sizeof(ERL_NIF_TERM) * handlesCount);
+        ERL_NIF_TERM* doubleArray = malloc(sizeof(ERL_NIF_TERM) * handlesCount);
+
+        for (i = 0; i < handlesCount; ++i) {
+            intArray[i] = enif_make_tuple2(env,
+                enif_make_int(env, intData[i * 2]),
+                enif_make_int(env, intData[i * 2 + 1]));
+            doubleArray[i] = enif_make_tuple2(env,
+                enif_make_tuple3(env,
+                    enif_make_double(env, (double)floatData[i * 6]),
+                    enif_make_double(env, (double)floatData[i * 6 + 1]),
+                    enif_make_double(env, (double)floatData[i * 6 + 2])),
+                enif_make_tuple3(env,
+                    enif_make_double(env, (double)floatData[i * 6 + 3]),
+                    enif_make_double(env, (double)floatData[i * 6 + 4]),
+                    enif_make_double(env, (double)floatData[i * 6 + 5])));
+        }
+
+        ERL_NIF_TERM intList = enif_make_list_from_array(env, intArray,
+            handlesCount);
+        ERL_NIF_TERM doubleList = enif_make_list_from_array(env, doubleArray,
+            handlesCount);
+        free(intArray);
+        free(doubleArray);
+
+        return enif_make_tuple4(env, enif_make_int(env, ret), handlesList,
+            intList, doubleList);
+    }
+    case 14: {
+        ERL_NIF_TERM* intArray = malloc(sizeof(ERL_NIF_TERM) * handlesCount);
+        ERL_NIF_TERM* doubleArray = malloc(sizeof(ERL_NIF_TERM) * handlesCount);
+
+        for (i = 0; i < handlesCount; ++i) {
+            intArray[i] = enif_make_int(env, intData[i]);
+            doubleArray[i] = enif_make_tuple2(env,
+                enif_make_tuple3(env,
+                    enif_make_double(env, (double)floatData[i * 6]),
+                    enif_make_double(env, (double)floatData[i * 6 + 1]),
+                    enif_make_double(env, (double)floatData[i * 6 + 2])),
+                enif_make_tuple3(env,
+                    enif_make_double(env, (double)floatData[i * 6 + 3]),
+                    enif_make_double(env, (double)floatData[i * 6 + 4]),
+                    enif_make_double(env, (double)floatData[i * 6 + 5])));
+        }
+
+        ERL_NIF_TERM intList = enif_make_list_from_array(env, intArray,
+            handlesCount);
+        ERL_NIF_TERM doubleList = enif_make_list_from_array(env, doubleArray,
+            handlesCount);
+        free(intArray);
+        free(doubleArray);
+
+        return enif_make_tuple4(env, enif_make_int(env, ret), handlesList,
+            intList, doubleList);
+    }
+    case 15: {
+        ERL_NIF_TERM* retArray = malloc(sizeof(ERL_NIF_TERM) * handlesCount);
+
+        for (i = 0; i < handlesCount; ++i)
+            retArray[i] = enif_make_tuple2(env,
+                enif_make_double(env, (double)floatData[i * 3]),
+                enif_make_double(env, (double)floatData[i * 3 + 1]));
+
+        ERL_NIF_TERM retList = enif_make_list_from_array(env, retArray,
+            handlesCount);
+        free(retArray);
+
+        return enif_make_tuple3(env, enif_make_int(env, ret), handlesList,
+            retList);
+    }
+    case 16: {
+        ERL_NIF_TERM* intArray = malloc(sizeof(ERL_NIF_TERM) * handlesCount);
+        ERL_NIF_TERM* doubleArray = malloc(sizeof(ERL_NIF_TERM) * handlesCount);
+
+        for (i = 0; i < handlesCount; ++i) {
+            intArray[i] = enif_make_tuple2(env,
+                enif_make_int(env, intData[i * 2]),
+                enif_make_int(env, intData[i * 2 + 1]));
+            doubleArray[i] = enif_make_tuple2(env,
+                enif_make_double(env, (double)floatData[i * 2]),
+                enif_make_double(env, (double)floatData[i * 2 + 1]));
+        }
+
+        ERL_NIF_TERM intList = enif_make_list_from_array(env, intArray,
+            handlesCount);
+        ERL_NIF_TERM doubleList = enif_make_list_from_array(env, doubleArray,
+            handlesCount);
+        free(intArray);
+        free(doubleArray);
+
+        return enif_make_tuple4(env, enif_make_int(env, ret), handlesList,
+            intList, doubleList);
+    }
+    default:
+        return enif_make_badarg(env);
+    }
 }
 
 ERL_FUNC(getObjectHandle) {
@@ -939,10 +1196,18 @@ ERL_FUNC(getObjectPosition) {
 
 ERL_FUNC(getObjects) {
     PARAM(int, 0, clientID);
-    PARAM(int, 1, objectType);
+    APARAM(1, aObjectType);
     OPMODE(2, operationMode);
     int objectCount;
     int *objectHandles;
+
+    // not sure if there are other valid types
+    int objectType = sceneObjectTypeAtomToInt(aObjectType);
+    if (objectType == -1)
+        return enif_make_badarg(env);
+
+    // this function uses another enum value to represent 'all' objects
+    if (objectType == sim_appobj_object_type) objectType = sim_handle_all;
 
     int ret = simxGetObjects(clientID, objectType, &objectCount, &objectHandles,
         operationMode);
