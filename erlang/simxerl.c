@@ -420,6 +420,25 @@ ERL_NIF_TERM buttonPropToAtomList(ErlNifEnv* env, int prop) {
     return retList;
 }
 
+int inboxMessageTypeAtomToInt(const char* atom) {
+    if (strcmp(atom, "version") == 0) return simx_headeroffset_version;
+    else if (strcmp(atom, "message_id") == 0) return simx_headeroffset_message_id;
+    else if (strcmp(atom, "client_time") == 0) return simx_headeroffset_client_time;
+    else if (strcmp(atom, "server_time") == 0) return simx_headeroffset_server_time;
+    else if (strcmp(atom, "scene_id") == 0) return simx_headeroffset_scene_id;
+    else if (strcmp(atom, "server_state") == 0) return simx_headeroffset_server_state;
+    else
+        return -1;
+}
+
+int outboxMessageTypeAtomToInt(const char* atom) {
+    if (strcmp(atom, "version") == 0) return simx_headeroffset_version;
+    else if (strcmp(atom, "message_id") == 0) return simx_headeroffset_message_id;
+    else if (strcmp(atom, "client_time") == 0) return simx_headeroffset_client_time;
+    else
+        return -1;
+}
+
 ERL_FUNC(start) {
     SPARAM(0, clientAddress);
     PARAM(int, 1, clientPort);
@@ -779,8 +798,12 @@ ERL_FUNC(getFloatSignal) {
 
 ERL_FUNC(getInMessageInfo) {
     PARAM(int, 0, clientID);
-    PARAM(int, 1, infoType);
-    int info;
+    APARAM(1, aInfoType);
+    int info, infoType;
+
+    infoType = inboxMessageTypeAtomToInt(aInfoType);
+    if (infoType == -1)
+        return enif_make_badarg(env);
 
     int ret = simxGetInMessageInfo(clientID, infoType, &info);
     return enif_make_tuple2(env, enif_make_int(env, ret), enif_make_int(env,
@@ -1314,8 +1337,12 @@ ERL_FUNC(getObjectVelocity) {
 
 ERL_FUNC(getOutMessageInfo) {
     PARAM(int, 0, clientID);
-    PARAM(int, 1, infoType);
-    int info;
+    APARAM(1, aInfoType);
+    int info, infoType;
+
+    infoType = outboxMessageTypeAtomToInt(aInfoType);
+    if (infoType == -1)
+        return enif_make_badarg(env);
 
     int ret = simxGetOutMessageInfo(clientID, infoType, &info);
     return enif_make_tuple2(env, enif_make_int(env, ret), enif_make_int(env,
