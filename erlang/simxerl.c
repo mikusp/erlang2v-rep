@@ -1364,6 +1364,7 @@ ERL_FUNC(getStringParameter) {
     OPMODE(2, operationMode);
     char *paramValue;
 
+    // TODO paramidentifier is an atom
     int ret = simxGetStringParameter(clientID, paramIdentifier, &paramValue,
         operationMode);
     return enif_make_tuple2(env, errorCodeToAtom(env, ret), enif_make_string(env,
@@ -1689,7 +1690,8 @@ ERL_FUNC(readVisionSensor) {
 
     simxReleaseBuffer(auxValuesCopy);
     simxReleaseBuffer(auxValuesCount);
-    return enif_make_tuple3(env, ret, enif_make_int(env, (int)detectionState), retListOfLists);
+    return enif_make_tuple3(env, errorCodeToAtom(env, ret),
+        enif_make_int(env, (int)detectionState), retListOfLists);
 }
 
 // simxReleaseBuffer isn't really useful in Erlang, is it?

@@ -36,23 +36,10 @@ This function returns a clientID used in many other functions as a parameter.
 Documentation
 =============
 
-You'll have to consult source code and V-Rep remote API documentation for now. A couple of rules I tried to stick to
-while writing this API:
+Documentation can be generated using
 
-* operation mode is an atom with name corresponding to C constant, but stripped
-from namespaces (e.g. atom oneshot represents simx_opmode_oneshot),
-* identifiers of boolean, integer, float parameters and button, model properties follow the same rule as
-operation mode,
-* if these properties can be ORed, you can specify a single property or a list of them,
-* if a function takes a fixed-length array of values in C, in Erlang it takes a tuple,
-* if a function takes a variable length array of values in C, in Erlang it takes a list,
-* all functions will throw badarg exception if a type of parameter is different from expected,
-* if a function returns a remote API error code and something else, it will return a tuple of
-error code and a proper return value (or values),
-* adding arbitrary numeric values to operation mode is not supported.
+    > edoc:files(["erlang/simx.erl"],[]).
 
-Parameter naming convention
-===========================
+Consult V-Rep remote API documentation for explanation of what each function does and values of
+certain parameters (e.g. ParameterID in simx:getObjectFloatParameter/4).
 
-* NamexxT - a tuple of xx arity,
-* NameL - a list.
