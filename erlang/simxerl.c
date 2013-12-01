@@ -17,10 +17,30 @@
     if (!enif_get_atom(env, argv[number], name, 256, ERL_NIF_LATIN1)) \
         return enif_make_badarg(env);
 
-#define OPMODE(number, name) APARAM(number, opMode); \
-    int name = operationModeAtomToInt(opMode); \
+#define OPMODE(number, name) \
+    int name; \
+    int opArbitraryVal = 0; \
+    char opMode[256]; \
+    if (enif_is_atom(env, argv[number])) { \
+        enif_get_atom(env, argv[number], opMode, 256, ERL_NIF_LATIN1); \
+    } \
+    else if (enif_is_tuple(env, argv[number])) { \
+        const ERL_NIF_TERM* opTuple; \
+        int opArity; \
+        enif_get_tuple(env, argv[number], &opArity, &opTuple); \
+        if (opArity != 2) \
+            return enif_make_badarg(env); \
+        \
+        if (!enif_get_atom(env, opTuple[0], opMode, 256, ERL_NIF_LATIN1)) \
+            return enif_make_badarg(env); \
+        if (!enif_get_int(env, opTuple[1], &opArbitraryVal)) \
+            return enif_make_badarg(env); \
+    } \
+    name = operationModeAtomToInt(opMode); \
     if (name == -1) \
-        return enif_make_badarg(env);
+        return enif_make_badarg(env); \
+    name += opArbitraryVal;
+
 
 #define LIST(type, number, listName, listLength) \
     ERL_NIF_TERM l##listName, h##listName, t##listName; \
@@ -88,6 +108,31 @@
     unsigned i##floatArray = 0; \
     for (; i##floatArray < length; ++i##floatArray) \
         floatArray[i##floatArray] = (float)doubleArray[i##floatArray];
+
+ERL_NIF_TERM errorCodeToAtom(ErlNifEnv* env, int returnValue) {
+    ERL_NIF_TERM errorAtom;
+
+    if (returnValue == simx_error_noerror)
+        errorAtom = enif_make_atom(env, "noerror");
+    else if (returnValue == simx_error_novalue_flag)
+        errorAtom = enif_make_atom(env, "novalue");
+    else if (returnValue == simx_error_timeout_flag)
+        errorAtom = enif_make_atom(env, "timeout");
+    else if (returnValue == simx_error_illegal_opmode_flag)
+        errorAtom = enif_make_atom(env, "illegal_opmode");
+    else if (returnValue == simx_error_remote_error_flag)
+        errorAtom = enif_make_atom(env, "remote_error");
+    else if (returnValue == simx_error_split_progress_flag)
+        errorAtom = enif_make_atom(env, "split_progress");
+    else if (returnValue == simx_error_local_error_flag)
+        errorAtom = enif_make_atom(env, "local_error");
+    else if (returnValue == simx_error_initialize_error_flag)
+        errorAtom = enif_make_atom(env, "initialize_error");
+    else
+        errorAtom = enif_make_atom(env, "unknown_error");
+
+    return errorAtom;
+}
 
 
 int operationModeAtomToInt(const char* atom) {
@@ -402,7 +447,7 @@ ERL_FUNC(addStatusbarMessage) {
     OPMODE(2, operationMode);
 
     int ret = simxAddStatusbarMessage(clientID, message, operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(appendStringSignal) {
@@ -419,7 +464,7 @@ ERL_FUNC(appendStringSignal) {
 
     free(signalValueToAppend);
 
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(auxiliaryConsoleClose) {
@@ -428,7 +473,7 @@ ERL_FUNC(auxiliaryConsoleClose) {
     OPMODE(2, operationMode);
 
     int ret = simxAuxiliaryConsoleClose(clientID, consoleHandle, operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(auxiliaryConsoleOpen) {
@@ -448,7 +493,7 @@ ERL_FUNC(auxiliaryConsoleOpen) {
 
     int ret = simxAuxiliaryConsoleOpen(clientID, title, maxLines, mode,
         position, size, fTextColor, fBackgroundColor, &consoleHandle, operationMode);
-    return enif_make_tuple2(env, enif_make_int(env, ret), enif_make_int(env,
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), enif_make_int(env,
         consoleHandle));
 }
 
@@ -460,7 +505,7 @@ ERL_FUNC(auxiliaryConsolePrint) {
 
     int ret = simxAuxiliaryConsolePrint(clientID, consoleHandle, txt,
         operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(auxiliaryConsoleShow) {
@@ -470,7 +515,7 @@ ERL_FUNC(auxiliaryConsoleShow) {
     OPMODE(3, operationMode);
 
     int ret = simxAuxiliaryConsoleShow(clientID, consoleHandle, (char)showState, operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(breakForceSensor) {
@@ -479,7 +524,7 @@ ERL_FUNC(breakForceSensor) {
     OPMODE(2, operationMode);
 
     int ret = simxBreakForceSensor(clientID, forceSensorHandle, operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(clearFloatSignal) {
@@ -488,7 +533,7 @@ ERL_FUNC(clearFloatSignal) {
     OPMODE(2, operationMode);
 
     int ret = simxClearFloatSignal(clientID, signalName, operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(clearIntegerSignal) {
@@ -497,7 +542,7 @@ ERL_FUNC(clearIntegerSignal) {
     OPMODE(2, operationMode);
 
     int ret = simxClearIntegerSignal(clientID, signalName, operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(clearStringSignal) {
@@ -506,7 +551,7 @@ ERL_FUNC(clearStringSignal) {
     OPMODE(2, operationMode);
 
     int ret = simxClearStringSignal(clientID, signalName, operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(closeScene) {
@@ -514,7 +559,7 @@ ERL_FUNC(closeScene) {
     OPMODE(1, operationMode);
 
     int ret = simxCloseScene(clientID, operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(copyPasteObjects) {
@@ -539,7 +584,7 @@ ERL_FUNC(copyPasteObjects) {
 
     free(objectHandles);
     free(tmpList);
-    return enif_make_tuple2(env, enif_make_int(env, ret), retList);
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), retList);
 }
 
 // returns a pointer - is it useful in erlang?
@@ -549,7 +594,7 @@ ERL_FUNC(copyPasteObjects) {
 //    enif_get_int(env, argv[0], &bufferSize);
 //
 //    int ret = simxCreateBuffer(bufferSize);
-//    return enif_make_int(env, ret);
+//    return errorCodeToAtom(env, ret);
 //}
 
 ERL_FUNC(createDummy) {
@@ -564,7 +609,7 @@ ERL_FUNC(createDummy) {
         c[i] = (char)colors[i];
 
     int ret = simxCreateDummy(clientID, (float)size, c, &dummyHandle, operationMode);
-    return enif_make_tuple2(env, enif_make_int(env, ret), enif_make_int(env, dummyHandle));
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), enif_make_int(env, dummyHandle));
 }
 
 ERL_FUNC(displayDialog) {
@@ -585,7 +630,7 @@ ERL_FUNC(displayDialog) {
         initialText, fTitleColors, fDialogColors, &dialogHandle, &uiHandle,
         operationMode);
 
-    return enif_make_tuple2(env, enif_make_int(env, ret), enif_make_tuple2(env,
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), enif_make_tuple2(env,
         enif_make_int(env, dialogHandle), enif_make_int(env, uiHandle)));
 }
 
@@ -595,7 +640,7 @@ ERL_FUNC(endDialog) {
     OPMODE(2, operationMode);
 
     int ret = simxEndDialog(clientID, dialogHandle, operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(eraseFile) {
@@ -604,7 +649,7 @@ ERL_FUNC(eraseFile) {
     OPMODE(2, operationMode);
 
     int ret = simxEraseFile(clientID, fileName_serverSide, operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(getAndClearStringSignal) {
@@ -616,7 +661,7 @@ ERL_FUNC(getAndClearStringSignal) {
 
     int ret = simxGetAndClearStringSignal(clientID, signalName, &signalValue,
         &signalLength, operationMode);
-    return enif_make_tuple2(env, enif_make_int(env, ret), enif_make_string_len(
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), enif_make_string_len(
         env, signalValue, (size_t)signalLength, ERL_NIF_LATIN1));
 }
 
@@ -628,7 +673,7 @@ ERL_FUNC(getArrayParameter) {
 
     int ret = simxGetArrayParameter(clientID, paramIdentifier, paramValues,
         operationMode);
-    return enif_make_tuple2(env, enif_make_int(env, ret), enif_make_tuple3(env,
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), enif_make_tuple3(env,
         enif_make_double(env, paramValues[0]),
         enif_make_double(env, paramValues[1]),
         enif_make_double(env, paramValues[2])));
@@ -646,7 +691,7 @@ ERL_FUNC(getBooleanParameter) {
 
     int ret = simxGetBooleanParameter(clientID, boolParamIdentifier, paramValue,
         operationMode);
-    return enif_make_tuple2(env, enif_make_int(env, ret), enif_make_string(
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), enif_make_string(
         env, paramValue, ERL_NIF_LATIN1));
 }
 
@@ -658,7 +703,7 @@ ERL_FUNC(getCollisionHandle) {
 
     int ret = simxGetCollisionHandle(clientID, collisionObjectName, &handle,
         operationMode);
-    return enif_make_tuple2(env, enif_make_int(env, ret), enif_make_int(env,
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), enif_make_int(env,
         handle));
 }
 
@@ -677,7 +722,7 @@ ERL_FUNC(getDialogInput) {
 
     int ret = simxGetDialogInput(clientID, dialogHandle, &inputText,
         operationMode);
-    return enif_make_tuple2(env, enif_make_int(env, ret), enif_make_string(env,
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), enif_make_string(env,
         inputText, ERL_NIF_LATIN1));
 }
 
@@ -688,7 +733,7 @@ ERL_FUNC(getDialogResult) {
     int result;
 
     int ret = simxGetDialogResult(clientID, dialogHandle, &result, operationMode);
-    return enif_make_tuple2(env, enif_make_int(env, ret), enif_make_int(env,
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), enif_make_int(env,
         result));
 }
 
@@ -700,7 +745,7 @@ ERL_FUNC(getDistanceHandle) {
 
     int ret = simxGetDistanceHandle(clientID, distanceObjectName, &handle,
         operationMode);
-    return enif_make_tuple2(env, enif_make_int(env, ret), enif_make_int(env,
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), enif_make_int(env,
         handle));
 }
 
@@ -716,7 +761,7 @@ ERL_FUNC(getFloatingParameter) {
 
     int ret = simxGetFloatingParameter(clientID, floatParamIdentifier, &paramValue,
         operationMode);
-    return enif_make_tuple2(env, enif_make_int(env, ret), enif_make_double(env,
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), enif_make_double(env,
         (double)paramValue));
 }
 
@@ -728,7 +773,7 @@ ERL_FUNC(getFloatSignal) {
 
     int ret = simxGetFloatSignal(clientID, signalName, &signalValue,
         operationMode);
-    return enif_make_tuple2(env, enif_make_int(env, ret), enif_make_double(env,
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), enif_make_double(env,
         (double)signalValue));
 }
 
@@ -754,7 +799,7 @@ ERL_FUNC(getIntegerParameter) {
 
     int ret = simxGetIntegerParameter(clientID, intParamIdentifier, &paramValue,
         operationMode);
-    return enif_make_tuple2(env, enif_make_int(env, ret), enif_make_int(env,
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), enif_make_int(env,
         paramValue));
 }
 
@@ -766,7 +811,7 @@ ERL_FUNC(getIntegerSignal) {
 
     int ret = simxGetIntegerSignal(clientID, signalName, &signalValue,
         operationMode);
-    return enif_make_tuple2(env, enif_make_int(env, ret), enif_make_int(env,
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), enif_make_int(env,
         signalValue));
 }
 
@@ -785,7 +830,7 @@ ERL_FUNC(getJointMatrix) {
         retList[i] = enif_make_double(env, (double)matrix[i]);
     }
 
-    return enif_make_tuple2(env, enif_make_int(env, ret), enif_make_list_from_array(env,
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), enif_make_list_from_array(env,
         retList, 12));
 }
 
@@ -797,7 +842,7 @@ ERL_FUNC(getJointPosition) {
 
     int ret = simxGetJointPosition(clientID, jointHandle, &position,
         operationMode);
-    return enif_make_tuple2(env, enif_make_int(env, ret), enif_make_double(env,
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), enif_make_double(env,
         (double)position));
 }
 
@@ -829,7 +874,7 @@ ERL_FUNC(getLastErrors) {
 
     free(retArray);
 
-    return enif_make_tuple2(env, enif_make_int(env, ret), retList);
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), retList);
 }
 
 ERL_FUNC(getModelProperty) {
@@ -841,7 +886,7 @@ ERL_FUNC(getModelProperty) {
     int ret = simxGetModelProperty(clientID, objectHandle, &prop, operationMode);
     ERL_NIF_TERM propsList = modelPropToAtomList(env, prop);
 
-    return enif_make_tuple2(env, enif_make_int(env, ret), propsList);
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), propsList);
 }
 
 ERL_FUNC(getObjectChild) {
@@ -853,7 +898,7 @@ ERL_FUNC(getObjectChild) {
 
     int ret = simxGetObjectChild(clientID, parentObjectHandle, childIndex,
         &childObjectHandle, operationMode);
-    return enif_make_tuple2(env, enif_make_int(env, ret), enif_make_int(env,
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), enif_make_int(env,
         childObjectHandle));
 }
 
@@ -866,7 +911,7 @@ ERL_FUNC(getObjectFloatParameter) {
 
     int ret = simxGetObjectFloatParameter(clientID, objectHandle, parameterID,
         &parameterValue, operationMode);
-    return enif_make_tuple2(env, enif_make_int(env, ret), enif_make_double(env,
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), enif_make_double(env,
         (double)parameterValue));
 }
 
@@ -912,7 +957,7 @@ ERL_FUNC(getObjectGroupData) {
             stringDataCount);
         free(retArray);
 
-        return enif_make_tuple3(env, enif_make_int(env, ret), handlesList,
+        return enif_make_tuple3(env, errorCodeToAtom(env, ret), handlesList,
             retList);
     }
     case 1: {
@@ -927,7 +972,7 @@ ERL_FUNC(getObjectGroupData) {
         free(retArray);
 
         // TODO convert returned types to atoms
-        return enif_make_tuple3(env, enif_make_int(env, ret), handlesList,
+        return enif_make_tuple3(env, errorCodeToAtom(env, ret), handlesList,
             retList);
     }
     case 2: {
@@ -941,7 +986,7 @@ ERL_FUNC(getObjectGroupData) {
             intDataCount);
         free(retArray);
 
-        return enif_make_tuple3(env, enif_make_int(env, ret), handlesList,
+        return enif_make_tuple3(env, errorCodeToAtom(env, ret), handlesList,
             retList);
     }
     case 3:
@@ -962,7 +1007,7 @@ ERL_FUNC(getObjectGroupData) {
             handlesCount);
         free(retArray);
 
-        return enif_make_tuple3(env, enif_make_int(env, ret), handlesList,
+        return enif_make_tuple3(env, errorCodeToAtom(env, ret), handlesList,
             retList);
     }
     case 7:
@@ -980,7 +1025,7 @@ ERL_FUNC(getObjectGroupData) {
             handlesCount);
         free(retArray);
 
-        return enif_make_tuple3(env, enif_make_int(env, ret), handlesList,
+        return enif_make_tuple3(env, errorCodeToAtom(env, ret), handlesList,
             retList);
     }
     case 9:
@@ -1003,7 +1048,7 @@ ERL_FUNC(getObjectGroupData) {
             handlesCount);
         free(retArray);
 
-        return enif_make_tuple3(env, enif_make_int(env, ret), handlesList,
+        return enif_make_tuple3(env, errorCodeToAtom(env, ret), handlesList,
             retList);
     }
     case 11:
@@ -1026,7 +1071,7 @@ ERL_FUNC(getObjectGroupData) {
             handlesCount);
         free(retArray);
 
-        return enif_make_tuple3(env, enif_make_int(env, ret), handlesList,
+        return enif_make_tuple3(env, errorCodeToAtom(env, ret), handlesList,
             retList);
     }
     case 13: {
@@ -1055,7 +1100,7 @@ ERL_FUNC(getObjectGroupData) {
         free(intArray);
         free(doubleArray);
 
-        return enif_make_tuple4(env, enif_make_int(env, ret), handlesList,
+        return enif_make_tuple4(env, errorCodeToAtom(env, ret), handlesList,
             intList, doubleList);
     }
     case 14: {
@@ -1082,7 +1127,7 @@ ERL_FUNC(getObjectGroupData) {
         free(intArray);
         free(doubleArray);
 
-        return enif_make_tuple4(env, enif_make_int(env, ret), handlesList,
+        return enif_make_tuple4(env, errorCodeToAtom(env, ret), handlesList,
             intList, doubleList);
     }
     case 15: {
@@ -1097,7 +1142,7 @@ ERL_FUNC(getObjectGroupData) {
             handlesCount);
         free(retArray);
 
-        return enif_make_tuple3(env, enif_make_int(env, ret), handlesList,
+        return enif_make_tuple3(env, errorCodeToAtom(env, ret), handlesList,
             retList);
     }
     case 16: {
@@ -1120,7 +1165,7 @@ ERL_FUNC(getObjectGroupData) {
         free(intArray);
         free(doubleArray);
 
-        return enif_make_tuple4(env, enif_make_int(env, ret), handlesList,
+        return enif_make_tuple4(env, errorCodeToAtom(env, ret), handlesList,
             intList, doubleList);
     }
     default:
@@ -1135,7 +1180,7 @@ ERL_FUNC(getObjectHandle) {
     int handle;
 
     int ret = simxGetObjectHandle(clientID, objectName, &handle, operationMode);
-    return enif_make_tuple2(env, enif_make_int(env, ret), enif_make_int(env,
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), enif_make_int(env,
         handle));
 }
 
@@ -1148,7 +1193,7 @@ ERL_FUNC(getObjectIntParameter) {
 
     int ret = simxGetObjectIntParameter(clientID, objectHandle, parameterID,
         &parameterValue, operationMode);
-    return enif_make_tuple2(env, enif_make_int(env, ret), enif_make_int(env,
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), enif_make_int(env,
         parameterValue));
 }
 
@@ -1161,7 +1206,7 @@ ERL_FUNC(getObjectOrientation) {
 
     int ret = simxGetObjectOrientation(clientID, objectHandle,
         relativeToObjectHandle, eulerAngles, operationMode);
-    return enif_make_tuple2(env, enif_make_int(env, ret), enif_make_tuple3(env,
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), enif_make_tuple3(env,
         enif_make_double(env, (double)eulerAngles[0]),
         enif_make_double(env, (double)eulerAngles[1]),
         enif_make_double(env, (double)eulerAngles[2])));
@@ -1175,7 +1220,7 @@ ERL_FUNC(getObjectParent) {
 
     int ret = simxGetObjectParent(clientID, objectHandle, &parentObjectHandle,
         operationMode);
-    return enif_make_tuple2(env, enif_make_int(env, ret), enif_make_int(env,
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), enif_make_int(env,
         parentObjectHandle));
 }
 
@@ -1188,7 +1233,7 @@ ERL_FUNC(getObjectPosition) {
 
     int ret = simxGetObjectPosition(clientID, objectHandle, relativeToObjectHandle,
         position, operationMode);
-    return enif_make_tuple2(env, enif_make_int(env, ret), enif_make_tuple3(env,
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), enif_make_tuple3(env,
         enif_make_double(env, (double)position[0]),
         enif_make_double(env, (double)position[1]),
         enif_make_double(env, (double)position[2])));
@@ -1196,12 +1241,12 @@ ERL_FUNC(getObjectPosition) {
 
 ERL_FUNC(getObjects) {
     PARAM(int, 0, clientID);
+    // not sure if there are other valid types
     APARAM(1, aObjectType);
     OPMODE(2, operationMode);
     int objectCount;
     int *objectHandles;
 
-    // not sure if there are other valid types
     int objectType = sceneObjectTypeAtomToInt(aObjectType);
     if (objectType == -1)
         return enif_make_badarg(env);
@@ -1223,7 +1268,7 @@ ERL_FUNC(getObjects) {
         objectCount);
 
     free(objectHandlesArray);
-    return enif_make_tuple2(env, enif_make_int(env, ret), handlesList);
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), handlesList);
 }
 
 ERL_FUNC(getObjectSelection) {
@@ -1246,7 +1291,7 @@ ERL_FUNC(getObjectSelection) {
         objectCount);
 
     free(objectHandlesArray);
-    return enif_make_tuple2(env, enif_make_int(env, ret), handlesList);
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), handlesList);
 }
 
 ERL_FUNC(getObjectVelocity) {
@@ -1257,7 +1302,7 @@ ERL_FUNC(getObjectVelocity) {
 
     int ret = simxGetObjectVelocity(clientID, objectHandle, linearVelocity,
         angularVelocity, operationMode);
-    return enif_make_tuple3(env, enif_make_int(env, ret), enif_make_tuple3(env,
+    return enif_make_tuple3(env, errorCodeToAtom(env, ret), enif_make_tuple3(env,
         enif_make_double(env, (double)linearVelocity[0]),
         enif_make_double(env, (double)linearVelocity[1]),
         enif_make_double(env, (double)linearVelocity[2])),
@@ -1282,7 +1327,7 @@ ERL_FUNC(getPingTime) {
     int pingTime;
 
     int ret = simxGetPingTime(clientID, &pingTime);
-    return enif_make_tuple2(env, enif_make_int(env, ret), enif_make_int(env,
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), enif_make_int(env,
         pingTime));
 }
 
@@ -1294,7 +1339,7 @@ ERL_FUNC(getStringParameter) {
 
     int ret = simxGetStringParameter(clientID, paramIdentifier, &paramValue,
         operationMode);
-    return enif_make_tuple2(env, enif_make_int(env, ret), enif_make_string(env,
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), enif_make_string(env,
         paramValue, ERL_NIF_LATIN1));
 }
 
@@ -1307,7 +1352,7 @@ ERL_FUNC(getStringSignal) {
 
     int ret = simxGetStringSignal(clientID, signalName, &signalValue,
         &signalLength, operationMode);
-    return enif_make_tuple2(env, enif_make_int(env, ret),
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret),
         enif_make_string_len(env, signalValue, (size_t)signalLength, ERL_NIF_LATIN1));
 }
 
@@ -1322,7 +1367,7 @@ ERL_FUNC(getUIButtonProperty) {
         operationMode);
     ERL_NIF_TERM propList = buttonPropToAtomList(env, prop);
 
-    return enif_make_tuple2(env, enif_make_int(env, ret), propList);
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), propList);
 }
 
 ERL_FUNC(getUIEventButton) {
@@ -1334,7 +1379,7 @@ ERL_FUNC(getUIEventButton) {
 
     int ret = simxGetUIEventButton(clientID, uiHandle, &uiEventButtonID,
         auxValues, operationMode);
-    return enif_make_tuple3(env, enif_make_int(env, ret), enif_make_int(env,
+    return enif_make_tuple3(env, errorCodeToAtom(env, ret), enif_make_int(env,
         uiEventButtonID), enif_make_tuple2(env, enif_make_int(env, auxValues[0]),
         enif_make_int(env, auxValues[1])));
 }
@@ -1346,7 +1391,7 @@ ERL_FUNC(getUIHandle) {
     int handle;
 
     int ret = simxGetUIHandle(clientID, uiName, &handle, operationMode);
-    return enif_make_tuple2(env, enif_make_int(env, ret), enif_make_int(env,
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), enif_make_int(env,
         handle));
 }
 
@@ -1359,7 +1404,7 @@ ERL_FUNC(getUISlider) {
 
     int ret = simxGetUISlider(clientID, uiHandle, uiButtonID, &position,
         operationMode);
-    return enif_make_tuple2(env, enif_make_int(env, ret), enif_make_int(env,
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), enif_make_int(env,
         position));
 }
 
@@ -1386,7 +1431,7 @@ ERL_FUNC(getVisionSensorDepthBuffer) {
 
     memcpy(bufferBinaryMem, buffer, bufferSizeInBytes);
 
-    return enif_make_tuple3(env, enif_make_int(env, ret), enif_make_tuple2(env,
+    return enif_make_tuple3(env, errorCodeToAtom(env, ret), enif_make_tuple2(env,
         enif_make_int(env, resolution[0]), enif_make_int(env, resolution[1])),
         bufferBinary);
 }
@@ -1418,7 +1463,7 @@ ERL_FUNC(getVisionSensorImage) {
 
     memcpy(erlangBinaryMem, image, imageSizeInBytes);
 
-    return enif_make_tuple3(env, enif_make_int(env, ret), enif_make_tuple3(env,
+    return enif_make_tuple3(env, errorCodeToAtom(env, ret), enif_make_tuple3(env,
         optionsAtom, enif_make_int(env, resolution[0]), enif_make_int(env,
         resolution[1])), imageErlangBinary);
 }
@@ -1430,7 +1475,7 @@ ERL_FUNC(jointGetForce) {
     float force;
 
     int ret = simxJointGetForce(clientID, jointHandle, &force, operationMode);
-    return enif_make_tuple2(env, enif_make_int(env, ret), enif_make_double(env,
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), enif_make_double(env,
         (double)force));
 }
 
@@ -1443,7 +1488,7 @@ ERL_FUNC(loadModel) {
 
     int ret = simxLoadModel(clientID, modelPathAndName, (char)options,
         &baseHandle, operationMode);
-    return enif_make_tuple2(env, enif_make_int(env, ret), enif_make_int(env,
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), enif_make_int(env,
         baseHandle));
 }
 
@@ -1454,7 +1499,7 @@ ERL_FUNC(loadScene) {
     OPMODE(3, operationMode);
 
     int ret = simxLoadScene(clientID, scenePathAndName, (char)options, operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(loadUI) {
@@ -1479,7 +1524,7 @@ ERL_FUNC(loadUI) {
 
     free(handlesArray);
     simxReleaseBuffer((char*)uiHandles);
-    return enif_make_tuple2(env, enif_make_int(env, ret), handlesList);
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), handlesList);
 }
 
 ERL_FUNC(pauseCommunication) {
@@ -1495,7 +1540,7 @@ ERL_FUNC(pauseSimulation) {
     OPMODE(1, operationMode);
 
     int ret = simxPauseSimulation(clientID, operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(query) {
@@ -1510,7 +1555,7 @@ ERL_FUNC(query) {
 
     int ret = simxQuery(clientID, signalName, signalValue, signalLength,
         retSignalName, &retSignalValue, &retSignalLength, timeOutInMs);
-    return enif_make_tuple2(env, enif_make_int(env, ret), enif_make_string_len(
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), enif_make_string_len(
         env, retSignalValue, (size_t)256, ERL_NIF_LATIN1));
 }
 
@@ -1522,7 +1567,7 @@ ERL_FUNC(readCollision) {
 
     int ret = simxReadCollision(clientID, collisionObjectHandle, &collisionState,
         operationMode);
-    return enif_make_tuple2(env, enif_make_int(env, ret), enif_make_int(env,
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), enif_make_int(env,
         (int)collisionState));
 }
 
@@ -1534,7 +1579,7 @@ ERL_FUNC(readDistance) {
 
     int ret = simxReadDistance(clientID, distanceObjectHandle, &minimumDistance,
         operationMode);
-    return enif_make_tuple2(env, enif_make_int(env, ret), enif_make_double(env,
+    return enif_make_tuple2(env, errorCodeToAtom(env, ret), enif_make_double(env,
         (double)minimumDistance));
 }
 
@@ -1547,7 +1592,7 @@ ERL_FUNC(readForceSensor) {
 
     int ret = simxReadForceSensor(clientID, forceSensorHandle, &state,
         forceVector, torqueVector, operationMode);
-    return enif_make_tuple3(env, enif_make_int(env, ret), enif_make_tuple3(env,
+    return enif_make_tuple3(env, errorCodeToAtom(env, ret), enif_make_tuple3(env,
         enif_make_double(env, (double)forceVector[0]),
         enif_make_double(env, (double)forceVector[1]),
         enif_make_double(env, (double)forceVector[2])),
@@ -1570,7 +1615,7 @@ ERL_FUNC(readProximitySensor) {
         operationMode);
     // {ret, detectionState, {{point[0], point[1], point[2]}, detectedObjectHandle,
     // {vector[0], vector[1], vector[2]}}}
-    return enif_make_tuple3(env, enif_make_int(env, ret), enif_make_int(env,
+    return enif_make_tuple3(env, errorCodeToAtom(env, ret), enif_make_int(env,
         (int)detectionState), enif_make_tuple3(env, enif_make_tuple3(env,
         enif_make_double(env, (double)detectedPoint[0]),
         enif_make_double(env, (double)detectedPoint[1]),
@@ -1628,7 +1673,7 @@ ERL_FUNC(removeObject) {
     OPMODE(2, operationMode);
 
     int ret = simxRemoveObject(clientID, objectHandle, operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(removeUI) {
@@ -1637,7 +1682,7 @@ ERL_FUNC(removeUI) {
     OPMODE(2, operationMode);
 
     int ret = simxRemoveUI(clientID, uiHandle, operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(setArrayParameter) {
@@ -1650,7 +1695,7 @@ ERL_FUNC(setArrayParameter) {
 
     int ret = simxSetArrayParameter(clientID, paramIdentifier, fParamValues,
         operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(setBooleanParameter) {
@@ -1665,7 +1710,7 @@ ERL_FUNC(setBooleanParameter) {
 
     int ret = simxSetBooleanParameter(clientID, boolParamIdentifier,
         (char)paramValue, operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(setFloatingParameter) {
@@ -1680,7 +1725,7 @@ ERL_FUNC(setFloatingParameter) {
 
     int ret = simxSetFloatingParameter(clientID, floatParamIdentifier,
         (float)paramValue, operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(setFloatSignal) {
@@ -1691,7 +1736,7 @@ ERL_FUNC(setFloatSignal) {
 
     int ret = simxSetFloatSignal(clientID, signalName, (float)signalValue,
         operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(setIntegerParameter) {
@@ -1706,7 +1751,7 @@ ERL_FUNC(setIntegerParameter) {
 
     int ret = simxSetIntegerParameter(clientID, intParamIdentifier, paramValue,
         operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(setIntegerSignal) {
@@ -1717,7 +1762,7 @@ ERL_FUNC(setIntegerSignal) {
 
     int ret = simxSetIntegerSignal(clientID, signalName, signalValue,
         operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(setJointForce) {
@@ -1728,7 +1773,7 @@ ERL_FUNC(setJointForce) {
 
     int ret = simxSetJointForce(clientID, jointHandle, (float)force,
         operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(setJointPosition) {
@@ -1739,7 +1784,7 @@ ERL_FUNC(setJointPosition) {
 
     int ret = simxSetJointPosition(clientID, jointHandle, (float)position,
         operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(setJointTargetPosition) {
@@ -1750,7 +1795,7 @@ ERL_FUNC(setJointTargetPosition) {
 
     int ret = simxSetJointTargetPosition(clientID, jointHandle, (float)targetPosition,
         operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(setJointTargetVelocity) {
@@ -1761,7 +1806,7 @@ ERL_FUNC(setJointTargetVelocity) {
 
     int ret = simxSetJointTargetVelocity(clientID, jointHandle,
         (float)targetVelocity, operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(setModelProperty) {
@@ -1771,7 +1816,7 @@ ERL_FUNC(setModelProperty) {
     OPMODE(3, operationMode);
 
     int ret = simxSetModelProperty(clientID, objectHandle, prop, operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(setObjectFloatParameter) {
@@ -1783,7 +1828,7 @@ ERL_FUNC(setObjectFloatParameter) {
 
     int ret = simxSetObjectFloatParameter(clientID, objectHandle, parameterID,
         (float)parameterValue, operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(setObjectIntParameter) {
@@ -1795,7 +1840,7 @@ ERL_FUNC(setObjectIntParameter) {
 
     int ret = simxSetObjectIntParameter(clientID, objectHandle, parameterID,
         parameterValue, operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(setObjectOrientation) {
@@ -1809,7 +1854,7 @@ ERL_FUNC(setObjectOrientation) {
 
     int ret = simxSetObjectOrientation(clientID, objectHandle, relativeToObjectHandle,
         fEulerAngles, operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(setObjectParent) {
@@ -1821,7 +1866,7 @@ ERL_FUNC(setObjectParent) {
 
     int ret = simxSetObjectParent(clientID, objectHandle, parentObject,
         keepInPlace, operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(setObjectPosition) {
@@ -1835,7 +1880,7 @@ ERL_FUNC(setObjectPosition) {
 
     int ret = simxSetObjectPosition(clientID, objectHandle, relativeToObjectHandle,
         fPosition, operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(setObjectSelection) {
@@ -1847,7 +1892,7 @@ ERL_FUNC(setObjectSelection) {
         operationMode);
 
     free(objectHandles);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(setSphericalJointMatrix) {
@@ -1860,7 +1905,7 @@ ERL_FUNC(setSphericalJointMatrix) {
 
     int ret = simxSetSphericalJointMatrix(clientID, jointHandle, fMatrix,
         operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(setStringSignal) {
@@ -1873,7 +1918,7 @@ ERL_FUNC(setStringSignal) {
     // will work with '\0's embedded in value?
     int ret = simxSetStringSignal(clientID, signalName, signalValue, signalLength,
         operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(setUIButtonLabel) {
@@ -1886,7 +1931,7 @@ ERL_FUNC(setUIButtonLabel) {
 
     int ret = simxSetUIButtonLabel(clientID, uiHandle, uiButtonID, upStateLabel,
         downStateLabel, operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 
@@ -1899,7 +1944,7 @@ ERL_FUNC(setUIButtonProperty) {
 
     int ret = simxSetUIButtonProperty(clientID, uiHandle, uiButtonID, prop,
         operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(setUISlider) {
@@ -1911,7 +1956,7 @@ ERL_FUNC(setUISlider) {
 
     int ret = simxSetUISlider(clientID, uiHandle, uiButtonID, position,
         operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(setVisionSensorImage) {
@@ -1933,7 +1978,7 @@ ERL_FUNC(setVisionSensorImage) {
 
     int ret = simxSetVisionSensorImage(clientID, sensorHandle, (char*)imageBin.data,
         imageBin.size, colorMode, operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(startSimulation) {
@@ -1941,7 +1986,7 @@ ERL_FUNC(startSimulation) {
     OPMODE(1, operationMode);
 
     int ret = simxStartSimulation(clientID, operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(stopSimulation) {
@@ -1949,7 +1994,7 @@ ERL_FUNC(stopSimulation) {
     OPMODE(1, operationMode);
 
     int ret = simxStopSimulation(clientID, operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(synchronous) {
@@ -1957,14 +2002,14 @@ ERL_FUNC(synchronous) {
     PARAM(int, 1, enable);
 
     int ret = simxSynchronous(clientID, (char)enable);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(synchronousTrigger) {
     PARAM(int, 0, clientID);
 
     int ret = simxSynchronousTrigger(clientID);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 ERL_FUNC(transferFile) {
@@ -1976,7 +2021,7 @@ ERL_FUNC(transferFile) {
 
     int ret = simxTransferFile(clientID, filePathAndName, fileName_serverSide,
         timeOut, operationMode);
-    return enif_make_int(env, ret);
+    return errorCodeToAtom(env, ret);
 }
 
 static ErlNifFunc functions[] = {
