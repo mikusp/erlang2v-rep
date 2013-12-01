@@ -793,13 +793,25 @@ ERL_FUNC(getLastCmdTime) {
 ERL_FUNC(getLastErrors) {
     PARAM(int, 0, clientID);
     OPMODE(1, operationMode);
-    int errorCnt;
+    int errorCnt, i;
     char* errorStrings;
 
     int ret = simxGetLastErrors(clientID, &errorCnt, &errorStrings, operationMode);
-    // TODO should return a list of error strings
-    // conversion from '\0' delimited strings to a list in Erlang
-    return enif_make_int(env, ret);
+
+    ERL_NIF_TERM* retArray = malloc(sizeof(ERL_NIF_TERM) * errorCnt);
+
+    // if errorCnt is zero, malloced memory is never accessed so it's ok
+    for (i = 0; i < errorCnt; ++i) {
+        retArray[i] = enif_make_string(env, errorStrings, ERL_NIF_LATIN1);
+        int nextErrorPosition = strlen(errorStrings) + 1;
+        errorStrings += nextErrorPosition;
+    }
+
+    ERL_NIF_TERM retList = enif_make_list_from_array(env, retArray, errorCnt);
+
+    free(retArray);
+
+    return enif_make_tuple2(env, enif_make_int(env, ret), retList);
 }
 
 ERL_FUNC(getModelProperty) {
